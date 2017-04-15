@@ -57,6 +57,10 @@ class Item(BaseModel):
         parsed, errors = ItemSchema.jsonapi(self, include_data)
         return parsed
 
+    @staticmethod
+    def validate_input(data):
+        return ItemSchema.validate_input(data)
+
 
 @database.atomic()
 @pre_delete(sender=Item)
