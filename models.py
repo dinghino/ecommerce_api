@@ -7,6 +7,7 @@ from passlib.hash import pbkdf2_sha256
 from peewee import DateTimeField, TextField, CharField, BooleanField
 from peewee import SqliteDatabase, DecimalField
 from peewee import UUIDField, ForeignKeyField, IntegerField
+from schemas import ItemSchema, UserSchema, OrderSchema, OrderItemSchema
 from playhouse.signals import Model, post_delete, pre_delete
 from uuid import uuid4
 
@@ -52,14 +53,9 @@ class Item(BaseModel):
             self.price,
             self.description)
 
-    def json(self):
-        return {
-            'item_id': str(self.item_id),
-            'name': self.name,
-            'price': float(self.price),
-            'description': self.description,
-            'availability': self.availability,
-        }
+    def json(self, include_data=[]):
+        parsed, errors = ItemSchema.jsonapi(self, include_data)
+        return parsed
 
 
 @database.atomic()
@@ -149,17 +145,16 @@ class User(BaseModel):
         """
         return pbkdf2_sha256.verify(password, self.password)
 
-    def json(self):
+    def json(self, include_data=[]):
         """
         Returns a dict describing the object, ready to be jsonified.
         """
+        parsed, errors = UserSchema.jsonapi(self, include_data)
+        return parsed
 
-        return {
-            'user_id': str(self.user_id),
-            'first_name': self.first_name,
-            'last_name': self.last_name,
-            'email': self.email,
-        }
+    @staticmethod
+    def validate_input(data):
+        return UserSchema.validate_input(data)
 
 
 class Address(BaseModel):
@@ -288,24 +283,9 @@ class Order(BaseModel):
         # TODO: Raise or return something more explicit
         return self
 
-    def json(self, include_items=False):
-        """
-        The order json method is different compared to the others, as long as the OrderItem
-        cross-table exists.
-        With the include_items flag sets to false, the function returns the order json.
-        Otherwise, if include_items is equal to true, all the OrderItems and related items
-        are included.
-        """
-
-        order_json = {
-            'order_id': str(self.order_id),
-            'date': str(self.created_at),
-            'total_price': float(self.total_price),
-            'delivery_address': self.delivery_address.json(),
-            'user_id': str(self.user.user_id)
-        }
-        if include_items:
-            order_json['items'] = self.get_order_items()
+    def json(self, include_data=[]):
+        parsed, errors = OrderSchema.jsonapi(self, include_data)
+        return parsed
 
         return order_json
 
@@ -340,13 +320,9 @@ class OrderItem(BaseModel):
     quantity = IntegerField()
     subtotal = DecimalField()
 
-    def json(self):
-        return {
-            'order_id': self.order.order_id,
-            'item_name': self.item.name,
-            'quantity': str(self.quantity),
-            'subtotal': float(self.subtotal)
-        }
+    def json(self, include_data=[]):
+        parsed, errors = OrderItemSchema.jsonapi(self, include_data)
+        return parsed
 
     def add_item(self, quantity=1):
         """
