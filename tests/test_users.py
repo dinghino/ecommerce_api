@@ -3,7 +3,8 @@ Test suite for User(s) resources.
 """
 
 from models import User, Address, Item, Order
-from tests.test_utils import open_with_auth, add_user, format_jsonapi_request
+from tests.test_utils import (open_with_auth, add_user, format_jsonapi_request,
+                              add_address)
 from tests.test_case import TestCase
 from http.client import (OK, NOT_FOUND, NO_CONTENT, BAD_REQUEST,
                          CREATED, CONFLICT, UNAUTHORIZED)

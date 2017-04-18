@@ -2,16 +2,17 @@
 Models contains the database models for the application.
 """
 import datetime
+from uuid import uuid4
 
 from passlib.hash import pbkdf2_sha256
 from peewee import DateTimeField, TextField, CharField, BooleanField
 from peewee import SqliteDatabase, DecimalField
 from peewee import UUIDField, ForeignKeyField, IntegerField
-from schemas import ItemSchema, UserSchema, OrderSchema, OrderItemSchema
 from playhouse.signals import Model, post_delete, pre_delete
-from uuid import uuid4
 
 from exceptions import InsufficientAvailabilityException
+from schemas import (ItemSchema, UserSchema, OrderSchema, OrderItemSchema,
+                     BaseSchema)
 from utils import remove_image
 
 database = SqliteDatabase('database.db')
@@ -22,6 +23,7 @@ class BaseModel(Model):
 
     created_at = DateTimeField(default=datetime.datetime.now)
     updated_at = DateTimeField(default=datetime.datetime.now)
+    _schema = BaseSchema
 
     def save(self, *args, **kwargs):
         """Automatically update updated_at time during save"""
@@ -30,6 +32,25 @@ class BaseModel(Model):
 
     class Meta:
         database = database
+
+    @classmethod
+    def get_all(cls):
+        return [o for o in cls.select()]
+
+    @classmethod
+    def json_list(cls, objs_list):
+        return cls._schema.jsonapi_list(objs_list)
+
+    def json(self, include_data=[]):
+        parsed, errors = self._schema.jsonapi(self, include_data)
+        return parsed
+
+    def serialize(self, include_data=[]):
+        return self._schema.serialize(self, include_data)
+
+    @classmethod
+    def validate_input(cls, data):
+        return cls._schema.validate_input(data)
 
 
 class Item(BaseModel):
@@ -45,6 +66,7 @@ class Item(BaseModel):
     price = DecimalField(auto_round=True)
     description = TextField()
     availability = IntegerField()
+    _schema = ItemSchema
 
     def __str__(self):
         return '{}, {}, {}, {}'.format(
@@ -52,14 +74,6 @@ class Item(BaseModel):
             self.name,
             self.price,
             self.description)
-
-    def json(self, include_data=[]):
-        parsed, errors = ItemSchema.jsonapi(self, include_data)
-        return parsed
-
-    @staticmethod
-    def validate_input(data):
-        return ItemSchema.validate_input(data)
 
 
 @database.atomic()
@@ -120,6 +134,7 @@ class User(BaseModel):
     email = CharField(unique=True)
     password = CharField()
     admin = BooleanField(default=False)
+    _schema = UserSchema
 
     @staticmethod
     def exists(email):
@@ -148,17 +163,6 @@ class User(BaseModel):
         :returns: bool
         """
         return pbkdf2_sha256.verify(password, self.password)
-
-    def json(self, include_data=[]):
-        """
-        Returns a dict describing the object, ready to be jsonified.
-        """
-        parsed, errors = UserSchema.jsonapi(self, include_data)
-        return parsed
-
-    @staticmethod
-    def validate_input(data):
-        return UserSchema.validate_input(data)
 
 
 class Address(BaseModel):
@@ -198,6 +202,7 @@ class Order(BaseModel):
     total_price = DecimalField(default=0)
     delivery_address = ForeignKeyField(Address, related_name="orders")
     user = ForeignKeyField(User, related_name="orders")
+    _schema = OrderSchema
 
     class Meta:
         order_by = ('created_at',)
@@ -287,14 +292,6 @@ class Order(BaseModel):
         # TODO: Raise or return something more explicit
         return self
 
-    def json(self, include_data=[]):
-        parsed, errors = OrderSchema.jsonapi(self, include_data)
-        return parsed
-
-    @staticmethod
-    def validate_input(data):
-        return OrderSchema.validate_input(data)
-
 
 class OrderItem(BaseModel):
     """ The model OrderItem is a cross table that contains the order
@@ -309,10 +306,7 @@ class OrderItem(BaseModel):
     item = ForeignKeyField(Item)
     quantity = IntegerField()
     subtotal = DecimalField()
-
-    def json(self, include_data=[]):
-        parsed, errors = OrderItemSchema.jsonapi(self, include_data)
-        return parsed
+    _schema = OrderItemSchema
 
     def add_item(self, quantity=1):
         """
