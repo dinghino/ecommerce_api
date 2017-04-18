@@ -190,8 +190,8 @@ class Order(BaseModel):
     """ The model Order contains a list of orders - one row per order.
     Each order will be place by one client.
     An order is represented by an order_id, which is a UUID,
-    a dateTimeField which is the date of the order, a FloatField which
-    is the total price of the order. Finally, there is the delivery address,
+    a DecimalField whichis the total price of the order.
+    Finally, there is the delivery address,
     if it's different from the customers address from their record.
     """
     order_id = UUIDField(unique=True, default=uuid4)
@@ -291,23 +291,9 @@ class Order(BaseModel):
         parsed, errors = OrderSchema.jsonapi(self, include_data)
         return parsed
 
-        return order_json
-
-    def get_order_items(self):
-        """
-        Gets all the OrderItems related to an order.
-        """
-
-        items = []
-        for orderitem in self.order_items:
-            items.append({
-                'quantity': orderitem.quantity,
-                'price': float(orderitem.item.price),
-                'subtotal': float(orderitem.subtotal),
-                'name': orderitem.item.name,
-                'description': orderitem.item.description
-            })
-        return items
+    @staticmethod
+    def validate_input(data):
+        return OrderSchema.validate_input(data)
 
 
 class OrderItem(BaseModel):
