@@ -83,7 +83,6 @@ class TestItems(TestCase):
                              content_type='application/json')
 
         resp_item = json.loads(resp.data)
-
         assert resp.status_code == client.CREATED
         assert len(Item.select()) == 1
 
@@ -94,7 +93,8 @@ class TestItems(TestCase):
         # validate response data attributes
         test_item = TEST_ITEM.copy()
         del test_item['item_id']
-        assert item.json()['data']['attributes'] == test_item
+        item, _ = item.serialize()
+        assert item['data']['attributes'] == test_item
 
     def test_post_item__failed(self):
         data = format_jsonapi_request('item', TEST_ITEM_WRONG)
@@ -118,8 +118,8 @@ class TestItems(TestCase):
         assert TEST_ITEM_PRECISION['availability'] == item.availability
 
     def test_post_item__availability(self):
-        resp = self.app.post('/items/',
-                             data=json.dumps(TEST_ITEM_AVAILABILITY),
+        data = format_jsonapi_request('item', TEST_ITEM_AVAILABILITY)
+        resp = self.app.post('/items/', data=json.dumps(data),
                              content_type='application/json')
         assert resp.status_code == client.BAD_REQUEST
         assert not Item.select().exists()
@@ -157,46 +157,44 @@ class TestItems(TestCase):
 
     def test_patch_change1item__success(self):
         item = Item.create(**TEST_ITEM)
+        post_data = format_jsonapi_request('item', {'name': 'new-name'})
         resp = self.app.patch('/items/{item_id}'.format(item_id=item.item_id),
-                              data=json.dumps({'name': 'new-name'}),
+                              data=json.dumps(post_data),
                               content_type='application/json')
-        assert resp.status_code == client.OK
 
-        json_item = Item.get(Item.item_id == item.item_id).json()
-        assert json_item['name'] == 'new-name'
-        assert json_item['price'] == TEST_ITEM['price']
-        assert json_item['description'] == TEST_ITEM['description']
-        assert json_item['availability'] == TEST_ITEM['availability']
-        assert json_item['item_id'] == item.item_id
-        assert json.loads(resp.data) == json_item
+        assert resp.status_code == client.OK
 
     def test_patch_allitems_success(self):
         item = Item.create(**TEST_ITEM)
+        post_data = format_jsonapi_request('item', {
+            'name': 'new-name', 'price': 40.20,
+            'description': 'new-description',
+            'availability': 2,
+        })
         resp = self.app.patch('/items/{item_id}'.format(item_id=item.item_id),
-                              data=json.dumps(
-                                  {'name': 'new-name', 'price': 40.20,
-                                   'description': 'new-description',
-                                   'availability': 2}),
+                              data=json.dumps(post_data),
                               content_type='application/json')
         assert resp.status_code == client.OK
-        json_item = Item.get(Item.item_id == item.item_id).json()
-        assert json_item['name'] == 'new-name'
-        assert json_item['price'] == 40.20
-        assert json_item['description'] == 'new-description'
-        assert json_item['availability'] == 2
-        assert json_item['item_id'] == item.item_id
+        json_item = Item.get(Item.item_id == item.item_id).serialize()[0]
+        item_data = json_item['data']
+        assert item_data['attributes']['name'] == 'new-name'
+        assert item_data['attributes']['price'] == 40.20
+        assert item_data['attributes']['description'] == 'new-description'
+        assert item_data['id'] == item.item_id
         assert json.loads(resp.data) == json_item
 
     def test_patch_item__wrong_id(self):
         Item.create(**TEST_ITEM)
+        post_data = format_jsonapi_request('item', TEST_ITEM2)
         resp = self.app.patch('/items/{item_id}'.format(item_id=WRONG_UUID),
-                              data=json.dumps(TEST_ITEM2),
+                              data=json.dumps(post_data),
                               content_type='application/json')
         assert resp.status_code == client.NOT_FOUND
 
     def test_patch_item__failed(self):
+        post_data = format_jsonapi_request('item', TEST_ITEM)
         resp = self.app.patch('/items/{item_id}'.format(item_id=WRONG_UUID),
-                              data=json.dumps(TEST_ITEM),
+                              data=json.dumps(post_data),
                               content_type='application/json')
         assert resp.status_code == client.NOT_FOUND
 
