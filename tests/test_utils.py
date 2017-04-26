@@ -1,13 +1,13 @@
 from models import Address, User
 from base64 import b64encode
-import uuid
 import os
+from uuid import uuid4
 import random
 import shutil
 from utils import get_image_folder
 
 
-def add_user(email, psw):
+def add_user(email, psw, id=None):
     """
     Create a single user in the test database.
     If an email is provided it will be used, otherwise it will be generated
@@ -20,11 +20,11 @@ def add_user(email, psw):
         last_name='Doe',
         email=email,
         password=User.hash_password(psw),
-        user_id=uuid.uuid4()
+        user_id=id or uuid4()
     )
 
 
-def add_admin_user(email, psw):
+def add_admin_user(email, psw, id=None):
     """
     Create a single user in the test database.
     If an email is provided it will be used, otherwise it will be generated
@@ -37,16 +37,16 @@ def add_admin_user(email, psw):
         last_name='Doe',
         email=email,
         password=User.hash_password(psw),
-        user_id=uuid.uuid4(),
+        user_id=id or uuid4(),
         admin=True
     )
 
 
 def add_address(user, country='Italy', city='Pistoia', post_code='51100',
-                address='Via Verdi 12', phone='3294882773'):
+                address='Via Verdi 12', phone='3294882773', id=None):
 
     return Address.create(
-        address_id=uuid.uuid4(),
+        address_id=id or uuid4(),
         user=user,
         country=country,
         city=city,
