@@ -11,7 +11,8 @@ from utils import get_image_folder
 
 random.seed(10485)
 
-def add_user(email, psw, id=None):
+
+def add_user(email, password, id=None, first_name='John', last_name='Doe'):
     """
     Create a single user in the test database.
     If an email is provided it will be used, otherwise it will be generated
@@ -20,10 +21,10 @@ def add_user(email, psw, id=None):
     email = email or 'johndoe{}@email.com'.format(int(random.random() * 100))
 
     return User.create(
-        first_name='John',
-        last_name='Doe',
+        first_name=first_name,
+        last_name=last_name,
         email=email,
-        password=User.hash_password(psw),
+        password=User.hash_password(password),
         user_id=id or uuid4()
     )
 
