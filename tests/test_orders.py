@@ -10,7 +10,8 @@ from tests.test_case import TestCase
 from tests.test_utils import _test_res_patch_date as patch_date
 from tests.test_utils import _test_res_patch_id as patch_id
 from tests.test_utils import (add_address, add_admin_user, add_user,
-                              get_expected_results, open_with_auth)
+                              get_expected_results, open_with_auth,
+                              format_jsonapi_request)
 
 # main endpoint for API
 API_ENDPOINT = '/{}'
@@ -132,22 +133,29 @@ class TestOrders(TestCase):
         add_address(user=user, id='8473fbaa-94f0-46db-939f-faae898f001c')
 
         order = {
-            'order': {
+            'relationships': {
                 'items': [
-                    {'item_id': '429994bf-784e-47cc-a823-e0c394b823e8',
-                     'price': 20.20, 'quantity': 4},
-                    {'item_id': '577ad826-a79d-41e9-a5b2-7955bcf03499',
-                     'price': 30.20, 'quantity': 10}
+                    {'id': '429994bf-784e-47cc-a823-e0c394b823e8',
+                     'type': 'item', 'quantity': 4},
+                    {'id': '577ad826-a79d-41e9-a5b2-7955bcf03499',
+                     'type': 'item', 'quantity': 10}
                 ],
-                'delivery_address': '8473fbaa-94f0-46db-939f-faae898f001c',
-                'user': 'e736a9a6-448b-4b92-9e38-4cf745b066db'
+                'delivery_address': {
+                    'type': 'address',
+                    'id': '8473fbaa-94f0-46db-939f-faae898f001c'
+                },
+                'user': {
+                    'type': 'user',
+                    'id': 'e736a9a6-448b-4b92-9e38-4cf745b066db'
+                }
             }
         }
+        data = format_jsonapi_request('order', order)
 
         path = 'orders/'
         resp = open_with_auth(self.app, API_ENDPOINT.format(path), 'POST',
                               user.email, TEST_USER_PSW, 'application/json',
-                              json.dumps(order))
+                              json.dumps(data))
 
         assert resp.status_code == CREATED
 
@@ -207,22 +215,30 @@ class TestOrders(TestCase):
             availability=10
         )
         user = add_user('12345@email.com', TEST_USER_PSW)
+
         order = {
-            'order': {
+            'relationships': {
                 'items': [
-                    {'item_id': '429994bf-784e-47cc-a823-e0c394b823e8',
-                     'price': 50.0, 'quantity': 4},
-                    {'item_id': '577ad826-a79d-41e9-a5b2-7955bcf03499',
-                     'price': 20.0, 'quantity': 10}
+                    {'id': '429994bf-784e-47cc-a823-e0c394b823e8',
+                     'type': 'item', 'quantity': 4},
+                    {'id': '577ad826-a79d-41e9-a5b2-7955bcf03499',
+                     'type': 'item', 'quantity': 10}
                 ],
-                'user': '86ba7e70-b3c0-4c9c-8d26-a14f49360e47'
+                'user': {
+                    'type': 'user',
+                    'id': 'e736a9a6-448b-4b92-9e38-4cf745b066db'
+                }
             }
         }
+        data = format_jsonapi_request('order', order)
+
         path = 'orders/'
         resp = open_with_auth(self.app, API_ENDPOINT.format(path), 'POST',
                               user.email, TEST_USER_PSW, 'application/json',
-                              json.dumps(order))
+                              json.dumps(data))
         assert resp.status_code == BAD_REQUEST
+        expected_result = EXPECTED_RESULTS['create_order__failure_missing_field']
+        assert json.loads(resp.data) == expected_result
         assert len(Order.select()) == 0
 
     def test_create_order__failure_empty_field(self):
@@ -242,21 +258,28 @@ class TestOrders(TestCase):
         )
         user_A = add_user('12345@email.com', TEST_USER_PSW)
         order = {
-            'order': {
+            'relationships': {
                 'items': [
-                    {'item_id': '429994bf-784e-47cc-a823-e0c394b823e8',
-                     'price': 50.0, 'quantity': 4},
-                    {'item_id': '577ad826-a79d-41e9-a5b2-7955bcf03499',
-                     'price': 20.0, 'quantity': 10}
+                    {'id': '429994bf-784e-47cc-a823-e0c394b823e8',
+                     'type': 'item', 'quantity': 4},
+                    {'id': '577ad826-a79d-41e9-a5b2-7955bcf03499',
+                     'type': 'item', 'quantity': 10}
                 ],
-                'delivery_address': '',
-                'user': '86ba7e70-b3c0-4c9c-8d26-a14f49360e47'
+                'delivery_address': {
+                    'type': 'address',
+                    'id': '8473fbaa-94f0-46db-939f-faae898f001c'
+                },
+                'user': {
+                    'type': 'user',
+                    'id': ''
+                }
             }
         }
+        data = format_jsonapi_request('order', order)
         path = 'orders/'
         resp = open_with_auth(self.app, API_ENDPOINT.format(path), 'POST',
                               user_A.email, TEST_USER_PSW, 'application/json',
-                              json.dumps(order))
+                              json.dumps(data))
         assert resp.status_code == BAD_REQUEST
         assert len(Order.select()) == 0
 
@@ -264,16 +287,23 @@ class TestOrders(TestCase):
         user = add_user('12345@email.com', TEST_USER_PSW)
         addr = add_address(user=user)
         order = {
-            'order': {
+            'relationships': {
                 'items': [],
-                'delivery_address': str(addr.address_id),
-                'user': str(user.user_id)
+                'delivery_address': {
+                    'type': 'address',
+                    'id': str(addr.address_id)
+                },
+                'user': {
+                    'type': 'user',
+                    'id': str(user.user_id)
+                }
             }
         }
+        data = format_jsonapi_request('order', order)
         path = 'orders/'
         resp = open_with_auth(self.app, API_ENDPOINT.format(path), 'POST',
                               user.email, TEST_USER_PSW, 'application/json',
-                              json.dumps(order))
+                              json.dumps(data))
         assert resp.status_code == BAD_REQUEST
         assert len(Order.select()) == 0
 
@@ -339,26 +369,29 @@ class TestOrders(TestCase):
             order_id='b4b879c6-8f74-4eee-8e18-25c919749828'
         ).add_item(item2)
 
-        order_id = str(order1.order_id)
-
         order = {
-            "order": {
-                "order_id": order_id,
+            'relationships': {
                 'items': [
-                    {'item_id': '429994bf-784e-47cc-a823-e0c394b823e8',
-                     'price': 20.0, 'quantity': 5},
-                    {'item_id': '577ad826-a79d-41e9-a5b2-7955bcf03499',
-                     'price': 30.20, 'quantity': 1}
+                    {'id': '429994bf-784e-47cc-a823-e0c394b823e8',
+                     'type': 'item', 'quantity': 5},
+                    {'id': '577ad826-a79d-41e9-a5b2-7955bcf03499',
+                     'type': 'item', 'quantity': 1}
                 ],
-                'delivery_address': str(addr_B.address_id),
-                'user': '90c3e1c1-b51c-4224-b69d-17f84f6a8dfc'
-
+                'delivery_address': {
+                    'type': 'address',
+                    'id': str(addr_B.address_id)
+                },
+                'user': {
+                    'type': 'user',
+                    'id': '90c3e1c1-b51c-4224-b69d-17f84f6a8dfc'
+                }
             }
         }
+        data = format_jsonapi_request('order', order)
         path = 'orders/{}'.format(order1.order_id)
         resp = open_with_auth(self.app, API_ENDPOINT.format(path), 'PATCH',
                               '12345@email.com', TEST_USER_PSW, 'application/json',
-                              json.dumps(order))
+                              json.dumps(data))
 
         expected_result = patch_date(EXPECTED_RESULTS['update_order__success'],
                                      order1.created_at)
@@ -444,28 +477,31 @@ class TestOrders(TestCase):
 
         Order.create(delivery_address=addr_B, user=user).add_item(item2)
 
-        order_id = str(order1.order_id)
-
         order = {
-            "order": {
-                "order_id": order_id,
+            'relationships': {
                 'items': [
-                    {'item_id': '429994bf-784e-47cc-a823-e0c394b823e8',
-                     'price': 20.0, 'quantity': 5},
-                    {'item_id': '577ad826-a79d-41e9-a5b2-7955bcf03499',
-                     'price': 30.20, 'quantity': 1}
+                    {'id': '429994bf-784e-47cc-a823-e0c394b823e8',
+                     'type': 'item', 'quantity': 5},
+                    {'id': '577ad826-a79d-41e9-a5b2-7955bcf03499',
+                     'type': 'item', 'quantity': 1}
                 ],
-                'delivery_address': str(addr_B.address_id),
-                'user': '35b9d92a-83c4-48c6-bc2a-580d95951f99'
-
+                'delivery_address': {
+                    'type': 'address',
+                    'id': str(addr_B.address_id)
+                },
+                'user': {
+                    'type': 'user',
+                    'id': '90c3e1c1-b51c-4224-b69d-17f84f6a8dfc'
+                }
             }
         }
+        data = format_jsonapi_request('order', order)
 
         user_B = add_admin_user('admin_user@email.com', TEST_USER_PSW)
         path = 'orders/{}'.format(order1.order_id)
         resp = open_with_auth(self.app, API_ENDPOINT.format(path), 'PATCH',
                               user_B.email, TEST_USER_PSW, 'application/json',
-                              json.dumps(order))
+                              json.dumps(data))
         assert resp.status_code == OK
 
         expected_result = patch_date(
@@ -517,22 +553,29 @@ class TestOrders(TestCase):
         order_id = str(uuid4())
 
         order = {
-            "order": {
-                "order_id": order_id,
+            'relationships': {
                 'items': [
-                    {'item_id': '429994bf-784e-47cc-a823-e0c394b823e8',
-                     'price': 100.0, 'quantity': 5},
-                    {'item_id': '577ad826-a79d-41e9-a5b2-7955bcf03499',
-                     'price': 2222.0, 'quantity': 1}
+                    {'id': '429994bf-784e-47cc-a823-e0c394b823e8',
+                     'type': 'item', 'quantity': 5},
+                    {'id': '577ad826-a79d-41e9-a5b2-7955bcf03499',
+                     'type': 'item', 'quantity': 1}
                 ],
-                'delivery_address': str(addr.address_id)
+                'delivery_address': {
+                    'type': 'address',
+                    'id': str(addr.address_id)
+                },
+                'user': {
+                    'type': 'user',
+                    'id': '90c3e1c1-b51c-4224-b69d-17f84f6a8dfc'
+                }
             }
         }
+        data = format_jsonapi_request('order', order)
 
         path = 'orders/{}'.format(order_id)
         resp = open_with_auth(self.app, API_ENDPOINT.format(path), 'PATCH',
                               '12345@email.com', TEST_USER_PSW, 'application/json',
-                              json.dumps(order))
+                              json.dumps(data))
 
         assert resp.status_code == NOT_FOUND
 
@@ -599,10 +642,11 @@ class TestOrders(TestCase):
                 'user': '86ba7e70-b3c0-4c9c-8d26-a14f49360e47'
             }
         }
+        data = format_jsonapi_request('order', order)
         path = '/orders/{}'.format(order_id)
         resp = open_with_auth(self.app, API_ENDPOINT.format(path), 'PATCH',
                               'user@email.com', TEST_USER_PSW, 'application/json',
-                              json.dumps(order))
+                              json.dumps(data))
 
         assert resp.status_code == NOT_FOUND
 
@@ -635,24 +679,29 @@ class TestOrders(TestCase):
         order_id = str(order1.order_id)
 
         order = {
-            "order": {
-                "order_id": order_id,
+            'relationships': {
                 'items': [
-                    {'item_id': '429994bf-784e-47cc-a823-e0c394b823e8',
-                     'price': 20.0, 'quantity': 5},
-                    {'item_id': '577ad826-a79d-41e9-a5b2-7955bcf03499',
-                     'price': 30.20, 'quantity': 1}
+                    {'id': '429994bf-784e-47cc-a823-e0c394b823e8',
+                     'type': 'item', 'quantity': 5},
+                    {'id': '577ad826-a79d-41e9-a5b2-7955bcf03499',
+                     'type': 'item', 'quantity': 1}
                 ],
-                'delivery_address': str(addr_B.address_id),
-                'user': '86ba7e70-b3c0-4c9c-8d26-a14f49360e47'
-
+                'delivery_address': {
+                    'type': 'address',
+                    'id': str(addr_B.address_id)
+                },
+                'user': {
+                    'type': 'user',
+                    'id': '90c3e1c1-b51c-4224-b69d-17f84f6a8dfc'
+                }
             }
         }
+        data = format_jsonapi_request('order', order)
         user_B = add_user('wrong_user@email.com', TEST_USER_PSW)
         path = 'orders/{}'.format(order1.order_id)
         resp = open_with_auth(self.app, API_ENDPOINT.format(path), 'PATCH',
                               user_B.email, TEST_USER_PSW, 'application/json',
-                              json.dumps(order))
+                              json.dumps(data))
 
         assert resp.status_code == UNAUTHORIZED
 

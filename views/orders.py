@@ -26,15 +26,15 @@ class OrdersHandler(Resource):
     @auth.login_required
     def post(self):
         """ Insert a new order."""
-        user = g.user
         res = request.get_json()
-        # Check that the order has an 'items' and 'delivery_address' attributes
-        # otherwise it's useless to continue.
-        for key in ('items', 'delivery_address'):
-            if not res['order'].get(key):
-                return None, BAD_REQUEST
 
-        res_items = res['order']['items']
+        isValid, errors = Order.validate_input(res)
+        if not isValid:
+            return errors, BAD_REQUEST
+
+        # Extract data to create the new order
+        res_items = res['data']['relationships']['items']['data']
+        res_address = res['data']['relationships']['delivery_address']['data']
 
         # Check that the items exist
         item_ids = [res_item['item_id'] for res_item in res_items]
@@ -44,8 +44,7 @@ class OrdersHandler(Resource):
 
         # Check that the address exist
         try:
-            address = Address.get(Address.address_id ==
-                                  res['order']['delivery_address'])
+            address = Address.get(Address.address_id == res_address['id'])
         except Address.DoesNotExist:
             abort(BAD_REQUEST)
 
@@ -53,7 +52,7 @@ class OrdersHandler(Resource):
             try:
                 order = Order.create(
                     delivery_address=address,
-                    user=user,
+                    user=g.user,
                 )
 
                 for item in items:
@@ -86,18 +85,20 @@ class OrderHandler(Resource):
     def patch(self, order_id):
         """ Modify a specific order. """
         res = request.get_json()
-        res_items = res['order']['items']
 
-        for key in ('items', 'delivery_address', 'order_id'):
-            if not res['order'].get(key):
-                return None, BAD_REQUEST
+        isValid, errors = Order.validate_input(res)
+        if not isValid:
+            return errors, BAD_REQUEST
+
+        res_items = res['data']['relationships']['items']['data']
+        res_addr = res['data']['relationships']['delivery_address']['data']
 
         try:
-            order = Order.get(order_id=str(order_id))
+            order = Order.get(order_id=order_id)
             items_ids = [e['item_id'] for e in res_items]
-            address = Address.get(Address.address_id ==
-                                  res['order']['delivery_address'])
-            items_ids = [e['item_id'] for e in res['order']['items']]
+            address = Address.get(Address.address_id == res_addr['id'])
+            items_ids = [e['id'] for e in res_items]
+
             items = list(Item.select().where(Item.item_id << items_ids))
             if len(items) != len(items_ids):
                 return None, BAD_REQUEST
@@ -120,9 +121,9 @@ class OrderHandler(Resource):
 
                 for item in items:
                     for res_item in res_items:
-                        # if names match add item and quantity, once per
+                        # if id match add item and quantity, once per
                         # res_item
-                        if str(item.item_id) == res_item['item_id']:
+                        if str(item.item_id) == res_item['id']:
                             order.add_item(item, res_item['quantity'])
                             break
             except InsufficientAvailabilityException:
