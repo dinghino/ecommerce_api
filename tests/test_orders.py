@@ -676,8 +676,6 @@ class TestOrders(TestCase):
 
         Order.create(delivery_address=addr_B, user=user).add_item(item2)
 
-        order_id = str(order1.order_id)
-
         order = {
             'relationships': {
                 'items': [
