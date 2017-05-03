@@ -1,9 +1,9 @@
 from auth import auth
 from flask import g, request
 from flask_restful import Resource
-from http.client import CREATED, NO_CONTENT, NOT_FOUND, OK
+from http.client import CREATED, NO_CONTENT, NOT_FOUND, OK, BAD_REQUEST
 from models import Address
-from utils import check_required_fields, generate_response
+from utils import generate_response
 
 import uuid
 
@@ -18,21 +18,21 @@ class AddressesHandler(Resource):
 
     @auth.login_required
     def post(self):
-        user = g.user
         res = request.get_json()
+        isValid, errors = Address.validate_input(res)
+        if not isValid:
+            return errors, BAD_REQUEST
 
-        check_required_fields(
-            request_data=res,
-            required_fields=['country', 'city', 'post_code', 'address', 'phone'])
+        data = res['data']['attributes']
 
         addr = Address.create(
             address_id=uuid.uuid4(),
-            user=user,
-            country=res['country'],
-            city=res['city'],
-            post_code=res['post_code'],
-            address=res['address'],
-            phone=res['phone'])
+            user=g.user,
+            country=data['country'],
+            city=data['city'],
+            post_code=data['post_code'],
+            address=data['address'],
+            phone=data['phone'])
 
         return generate_response(addr.json(), CREATED)
 
@@ -53,34 +53,40 @@ class AddressHandler(Resource):
 
     @auth.login_required
     def put(self, address_id):
+        res = request.get_json()
+
+        isValid, errors = Address.validate_input(res)
+        if not isValid:
+            return errors, BAD_REQUEST
+
         try:
             obj = Address.get(Address.user == g.user,
                               Address.address_id == address_id)
         except Address.DoesNotExist:
             return None, NOT_FOUND
 
-        res = request.get_json()
+        data = res['data']['attributes']
 
-        country = res.get('country')
-        city = res.get('city')
-        post_code = res.get('post_code')
-        address = res.get('address')
-        phone = res.get('phone')
+        country = data.get('country')
+        city = data.get('city')
+        post_code = data.get('post_code')
+        address = data.get('address')
+        phone = data.get('phone')
 
         if country and country != obj.country:
-            obj.country = res['country']
+            obj.country = country
 
         if city and city != obj.city:
-            obj.city = res['city']
+            obj.city = city
 
         if post_code and post_code != obj.post_code:
-            obj.post_code = res['post_code']
+            obj.post_code = post_code
 
         if address and address != obj.address:
-            obj.address = res['address']
+            obj.address = address
 
         if phone and phone != obj.phone:
-            obj.phone = res['phone']
+            obj.phone = phone
 
         obj.save()
 
