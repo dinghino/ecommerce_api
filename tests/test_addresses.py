@@ -140,11 +140,11 @@ class TestAddresses(TestCase):
                               content_type='application/json')
 
         assert resp.status_code == OK
-        upd_addr = Address.get(Address.address_id == addr_id).serialize()[0]
+        upd_addr = Address.get(Address.address_id == addr_id).json()
         expected_result = EXPECTED_RESULTS['put_address__success']
         # Check that the response data is what is expected and is also
         # the same as what has ben actually saved
-        assert json.loads(resp.data) == expected_result == upd_addr
+        assert json.loads(resp.data) == expected_result == json.loads(upd_addr)
 
     def test_put_address__wrong_id(self):
         user = add_user('mariorossi@gmail.com', '123')
