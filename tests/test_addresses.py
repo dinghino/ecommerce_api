@@ -16,12 +16,14 @@ EXPECTED_RESULTS = get_expected_results('addresses')
 def new_addr(user, country='Italy', city='Pistoia', post_code='51100',
              address='Via Verdi 12', phone='3294882773'):
     return {
-        'user_id': str(user.user_id),
         'country': country,
         'city': city,
         'post_code': post_code,
         'address': address,
-        'phone': phone
+        'phone': phone,
+        'relationships': {
+            'user': {'type': 'user', 'id': str(user.user_id)}
+        }
     }
 
 

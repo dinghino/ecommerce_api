@@ -219,5 +219,5 @@ class AddressSchema(BaseSchema):
     user = fields.Relationship(
         include_resource_linkage=True,
         type_='user', schema='UserSchema',
-        id_field='user_id',
+        id_field='user_id', required=True,
     )
