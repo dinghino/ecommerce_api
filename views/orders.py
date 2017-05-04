@@ -27,7 +27,6 @@ class OrdersHandler(Resource):
     def post(self):
         """ Insert a new order."""
         res = request.get_json()
-
         isValid, errors = Order.validate_input(res)
         if not isValid:
             return errors, BAD_REQUEST
@@ -59,12 +58,21 @@ class OrdersHandler(Resource):
                     for res_item in res_items:
                         # if names match add item and quantity, once per
                         # res_item
-                        if str(item.item_id) == res_item['item_id']:
+                        if str(item.item_id) == res_item['id']:
                             order.add_item(item, res_item['quantity'])
                             break
             except InsufficientAvailabilityException:
                 txn.rollback()
                 return None, BAD_REQUEST
+            except KeyError:
+                # FIXME: This catch is required to catch missing quantity attribute
+                # on the post request. This should be done from the validate_input
+                # function but this needs to be implemented yet, so this prevents
+                # raising KeyError later on when adding items
+                msg = {
+                    'message': 'Item {} missing quantity attribute'.format(item.item_id)
+                }
+                return msg, BAD_REQUEST
 
         return generate_response(order.json(), CREATED)
 
@@ -129,6 +137,13 @@ class OrderHandler(Resource):
             except InsufficientAvailabilityException:
                 txn.rollback()
                 return None, BAD_REQUEST
+            except KeyError:
+                # FIXME: Prevent future KeyError when adding items. See post method
+                # for further info.
+                msg = {
+                    'message': 'Item {} missing quantity attribute'.format(item.item_id)
+                }
+                return msg, BAD_REQUEST
 
         order.delivery_address = address
         order.save()
