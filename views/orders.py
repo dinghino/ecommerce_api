@@ -27,8 +27,8 @@ class OrdersHandler(Resource):
     def post(self):
         """ Insert a new order."""
         res = request.get_json()
-        isValid, errors = Order.validate_input(res)
-        if not isValid:
+        errors = Order.validate_input(res)
+        if errors:
             return errors, BAD_REQUEST
 
         # Extract data to create the new order
@@ -94,8 +94,8 @@ class OrderHandler(Resource):
         """ Modify a specific order. """
         res = request.get_json()
 
-        isValid, errors = Order.validate_input(res)
-        if not isValid:
+        errors = Order.validate_input(res)
+        if errors:
             return errors, BAD_REQUEST
 
         req_items = res['data']['relationships']['items']['data']
