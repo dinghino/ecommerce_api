@@ -182,12 +182,6 @@ class TestItems(TestCase):
         expected_result = EXPECTED_RESULTS['patch_allitems__success']
         assert json.loads(resp.data) == expected_result
 
-        # validate patch functionality checking for updated values
-        item = Item.get()
-        assert item.name == 'new-name'
-        assert float(item.price) == 40.20
-        assert item.description == 'new-description'
-
     def test_patch_item__wrong_id(self):
         Item.create(**TEST_ITEM)
         post_data = format_jsonapi_request('item', TEST_ITEM2)
@@ -219,21 +213,21 @@ class TestItems(TestCase):
         picture = Picture.create(item=item, **TEST_PICTURE)
         picture2 = Picture.create(item=item, **TEST_PICTURE2)
         picture3 = Picture.create(item=item2, **TEST_PICTURE3)
-        path_pic = os.path.join(utils.get_image_folder(), "{picture_id}.{extension}".format(
+        imgfolder = utils.get_image_folder()
+        path_pic = os.path.join(imgfolder, "{picture_id}.{extension}".format(
             picture_id=picture.picture_id,
             extension=picture.extension))
-        path_pic2 = os.path.join(utils.get_image_folder(), "{picture_id}.{extension}".format(
+        path_pic2 = os.path.join(imgfolder, "{picture_id}.{extension}".format(
             picture_id=picture2.picture_id,
             extension=picture2.extension))
-        path_pic3 = os.path.join(utils.get_image_folder(), "{picture_id}.{extension}".format(
+        path_pic3 = os.path.join(imgfolder, "{picture_id}.{extension}".format(
             picture_id=picture3.picture_id,
             extension=picture3.extension))
         open(path_pic, "wb")
         open(path_pic2, "wb")
         open(path_pic3, "wb")
 
-        resp = self.app.delete('/items/{item_id}'.format(
-            item_id=item.item_id))
+        resp = self.app.delete('/items/{item_id}'.format(item_id=item.item_id))
 
         assert resp.status_code == client.NO_CONTENT
         assert Picture.select().count() == 1

@@ -36,7 +36,7 @@ class OrdersHandler(Resource):
         req_address = res['data']['relationships']['delivery_address']['data']
 
         # Check that the items exist
-        item_ids = [req_item['item_id'] for req_item in req_items]
+        item_ids = [req_item['id'] for req_item in req_items]
         items = Item.select().where(Item.item_id << item_ids)
         if items.count() != len(req_items):
             abort(BAD_REQUEST)
