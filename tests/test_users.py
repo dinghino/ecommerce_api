@@ -1,6 +1,7 @@
 """
 Test suite for User(s) resources.
 """
+from tests.test_case import TestCase
 
 import json
 import uuid
@@ -8,9 +9,7 @@ from http.client import (BAD_REQUEST, CONFLICT, CREATED, NO_CONTENT, NOT_FOUND,
                          OK, UNAUTHORIZED)
 
 from models import Address, Item, Order, User
-from tests.test_case import TestCase
 
-from tests.test_utils import _test_res_patch_id as patch_id
 from tests.test_utils import (add_address, add_user, format_jsonapi_request,
                               get_expected_results, open_with_auth)
 
@@ -59,10 +58,7 @@ class TestUser(TestCase):
         assert resp.status_code == CREATED
         resp_user = json.loads(resp.data)
 
-        expected_result = patch_id(
-            EXPECTED_RESULTS['post_new_user__success'],
-            User.get().user_id)
-
+        expected_result = EXPECTED_RESULTS['post_new_user__success']
         assert resp_user == expected_result
 
         assert User.select().count() == 1

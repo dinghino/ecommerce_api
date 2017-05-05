@@ -1,17 +1,20 @@
 """
 Test suite.
 """
+
+from tests.test_case import TestCase
+
 import json
 from http.client import (BAD_REQUEST, CREATED, NO_CONTENT, NOT_FOUND, OK,
                          UNAUTHORIZED)
+
+
 from uuid import uuid4
 from models import Item, Order, OrderItem
-from tests.test_case import TestCase
 from tests.test_utils import _test_res_patch_date as patch_date
-from tests.test_utils import _test_res_patch_id as patch_id
 from tests.test_utils import (add_address, add_admin_user, add_user,
-                              get_expected_results, open_with_auth,
-                              format_jsonapi_request)
+                              format_jsonapi_request, get_expected_results,
+                              open_with_auth)
 
 # main endpoint for API
 API_ENDPOINT = '/{}'
@@ -23,7 +26,6 @@ EXPECTED_RESULTS = get_expected_results('orders')
 
 
 class TestOrders(TestCase):
-
     def test_get_orders__empty(self):
         resp = self.app.get('/orders/')
         assert resp.status_code == OK
@@ -162,10 +164,10 @@ class TestOrders(TestCase):
         assert len(Order.select()) == 1
         assert len(OrderItem.select()) == 2
         order = Order.get()
-        expected_result = patch_date(
-            EXPECTED_RESULTS['create_order__success'], order.created_at)
-        # inject the order id
-        expected_result = patch_id(expected_result, order.order_id)
+        expected_result = EXPECTED_RESULTS['create_order__success']
+
+        # patch the creation date
+        expected_result = patch_date(expected_result, order.created_at)
         assert json.loads(resp.data) == expected_result
 
     def test_create_order__failure_availability(self, mocker):

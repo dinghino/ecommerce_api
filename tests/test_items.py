@@ -1,6 +1,7 @@
 """
 Test suite for ItemHandler and ItemListHandler
 """
+from tests.test_case import TestCase
 
 import http.client as client
 import os
@@ -8,10 +9,9 @@ import os
 import simplejson as json
 
 import utils
+
 from models import Item, Picture
 from tests import test_utils
-from tests.test_case import TestCase
-from tests.test_utils import _test_res_patch_id as patch_id
 from tests.test_utils import format_jsonapi_request, get_expected_results
 
 TEST_IMAGE_FOLDER = 'test_images'
@@ -87,11 +87,7 @@ class TestItems(TestCase):
         assert resp.status_code == client.CREATED
         assert len(Item.select()) == 1
 
-        expected_result = patch_id(
-            EXPECTED_RESULTS['post_item__success'],
-            Item.get().item_id
-        )
-
+        expected_result = EXPECTED_RESULTS['post_item__success']
         assert json.loads(resp.data) == expected_result
 
     def test_post_item__failed(self):
@@ -107,13 +103,11 @@ class TestItems(TestCase):
         resp = self.app.post('/items/', data=json.dumps(data),
                              content_type='application/json')
         assert resp.status_code == client.CREATED
-        item = Item.select()[0]
-        expected_result = patch_id(
-            EXPECTED_RESULTS['post_item__round_price'],
-            item.item_id,
-        )
+
+        expected_result = EXPECTED_RESULTS['post_item__round_price']
         assert json.loads(resp.data) == expected_result
 
+        item = Item.select()[0]
         assert round(TEST_ITEM_PRECISION['price'], 5) == float(item.price)
         assert not TEST_ITEM_PRECISION['price'] == item.price
         assert TEST_ITEM_PRECISION['availability'] == item.availability
