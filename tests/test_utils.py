@@ -157,17 +157,32 @@ def format_jsonapi_request(type_, data):
     return retval
 
 
+class results:
+    """
+    Singleton class to handle tests results from different test files.
+    Since our test result sample (`expected_results.json`) is a read-only file
+    while testing, is useless to find it and load it every time a test file is
+    set up.
+    """
+    _dict = None
+
+    def __new__(cls):
+        if not results._dict:
+            path = os.path.abspath(os.path.dirname(__file__))
+            path = os.path.join(path, 'expected_results.json')
+            with open(path) as fo:
+                print('Loading data!')
+                results._dict = json.load(fo)
+
+        return results._dict
+
+
 def get_expected_results(section):
     """
     Returns the given section of the expected results data from
     `expected_results.json` to validate the response of the flask tests.
     """
-    path = os.path.abspath(os.path.dirname(__file__))
-    path = os.path.join(path, 'expected_results.json')
-    with open(path) as fo:
-        data = json.load(fo)
-
-    return data[section]
+    return results()[section]
 
 
 def _test_res_patch_date(result, date):
@@ -176,8 +191,8 @@ def _test_res_patch_date(result, date):
     with the given date. If a result list needs to be patched, a matching indexes
     list of dates needs to be given as `date`.
 
-    :param result: a single jsonapi result `dict` or a `list` of result
-    :param date: a single `DateTime` object or a **matching** `list` of DateTime
+    : param result: a single jsonapi result `dict` or a `list` of result
+    : param date: a single `DateTime` object or a ** matching ** `list` of DateTime
     """
     # patch the attribute
     def patch(r, d):
@@ -198,14 +213,14 @@ def _test_res_patch_date(result, date):
 
 def _test_res_sort_included(result, sortFn=lambda x: x['type']):
     """
-    Given a jsonapi response with included data (i.e. an Order that includes
+    Given a jsonapi response with included data(i.e. an Order that includes
     user, address and items), return the same result with the list of `included`
     sorted using ``sortFn``.
 
-    :param result: jsonapi structure that needs normalization
-    :param sortFn: sorting function called on every ``included`` resource.
+    : param result: jsonapi structure that needs normalization
+    : param sortFn: sorting function called on every ``included`` resource.
                    default takes the attribute ``type`` to sort the resources.
-    :type sortFn: ``function``
+    : type sortFn: ``function``
     """
     # safety check.
     if 'included' not in result:
@@ -225,7 +240,7 @@ def _test_res_sort_included(result, sortFn=lambda x: x['type']):
 def _test_res_sort_errors(e):
     """
     Returns the list of errors from a validate_input call, sorted by the
-    errors/source/pointer attribute, allowing proper testing.
+    errors / source / pointer attribute, allowing proper testing.
     """
 
     e['errors'] = sorted(e['errors'], key=lambda e: e['source']['pointer'])
