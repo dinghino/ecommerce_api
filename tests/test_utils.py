@@ -31,6 +31,16 @@ from utils import get_image_folder  # noqa: E402
 random.seed(10485)
 
 
+path = os.path.abspath(os.path.dirname(__file__))
+path = os.path.join(path, 'expected_results.json')
+with open(path) as fo:
+    """
+    Expected results dict loaded from `expected_results.json` that can be used
+    to match tests operations with flask.
+    """
+    RESULTS = json.load(fo)
+
+
 def add_user(email, password, id=None, first_name='John', last_name='Doe'):
     """
     Create a single user in the test database.
@@ -159,21 +169,6 @@ def format_jsonapi_request(type_, data):
         }
     }
     return retval
-
-
-# Load the tests results json in a dict that can be used from the test files
-path = os.path.abspath(os.path.dirname(__file__))
-path = os.path.join(path, 'expected_results.json')
-with open(path) as fo:
-    RESULTS = json.load(fo)
-
-
-def get_expected_results(section):
-    """
-    Returns the given section of the expected results data from
-    `expected_results.json` to validate the response of the flask tests.
-    """
-    return RESULTS[section]
 
 
 def _test_res_patch_date(result, date):

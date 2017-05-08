@@ -6,12 +6,12 @@ from http.client import BAD_REQUEST, CREATED, NO_CONTENT, NOT_FOUND, OK
 from uuid import uuid4
 
 from models import Address
-from tests.test_utils import (add_address, add_user, get_expected_results,
+from tests.test_utils import (add_address, add_user, RESULTS,
                               open_with_auth, format_jsonapi_request)
 
 TEST_USER_PSW = '123'
 
-EXPECTED_RESULTS = get_expected_results('addresses')
+EXPECTED_RESULTS = RESULTS['addresses']
 
 
 def new_addr(user, country='Italy', city='Pistoia', post_code='51100',
