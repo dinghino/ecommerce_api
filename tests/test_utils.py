@@ -110,6 +110,10 @@ def setup_images():
         os.makedirs(get_image_folder())
 
 
+# ######################################
+# JSONAPI testing utilities
+
+
 def format_jsonapi_request(type_, data):
     """
     Given the attributes and relationships of a resource, compile the jsonapi
@@ -157,24 +161,26 @@ def format_jsonapi_request(type_, data):
     return retval
 
 
-class results:
+class Results:
     """
     Singleton class to handle tests results from different test files.
     Since our test result sample (`expected_results.json`) is a read-only file
     while testing, is useless to find it and load it every time a test file is
     set up.
+
+    Returns: `dict` instance with the parsed json data for the expected results
     """
     _dict = None
 
     def __new__(cls):
-        if not results._dict:
+        if not Results._dict:
             path = os.path.abspath(os.path.dirname(__file__))
             path = os.path.join(path, 'expected_results.json')
             with open(path) as fo:
                 print('Loading data!')
-                results._dict = json.load(fo)
+                Results._dict = json.load(fo)
 
-        return results._dict
+        return Results._dict
 
 
 def get_expected_results(section):
@@ -182,7 +188,7 @@ def get_expected_results(section):
     Returns the given section of the expected results data from
     `expected_results.json` to validate the response of the flask tests.
     """
-    return results()[section]
+    return Results()[section]
 
 
 def _test_res_patch_date(result, date):
