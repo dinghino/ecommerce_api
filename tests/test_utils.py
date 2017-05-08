@@ -161,26 +161,11 @@ def format_jsonapi_request(type_, data):
     return retval
 
 
-class Results:
-    """
-    Singleton class to handle tests results from different test files.
-    Since our test result sample (`expected_results.json`) is a read-only file
-    while testing, is useless to find it and load it every time a test file is
-    set up.
-
-    Returns: `dict` instance with the parsed json data for the expected results
-    """
-    _dict = None
-
-    def __new__(cls):
-        if not Results._dict:
-            path = os.path.abspath(os.path.dirname(__file__))
-            path = os.path.join(path, 'expected_results.json')
-            with open(path) as fo:
-                print('Loading data!')
-                Results._dict = json.load(fo)
-
-        return Results._dict
+# Load the tests results json in a dict that can be used from the test files
+path = os.path.abspath(os.path.dirname(__file__))
+path = os.path.join(path, 'expected_results.json')
+with open(path) as fo:
+    RESULTS = json.load(fo)
 
 
 def get_expected_results(section):
@@ -188,7 +173,7 @@ def get_expected_results(section):
     Returns the given section of the expected results data from
     `expected_results.json` to validate the response of the flask tests.
     """
-    return Results()[section]
+    return RESULTS[section]
 
 
 def _test_res_patch_date(result, date):
